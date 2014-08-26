@@ -130,66 +130,6 @@ def gameToDict(game):
     return res
 ######################################################
 
-class Base:
-    def __init__(self, fname):
-        self.__gen = ints()
-        self.id = 0
-        self.base = []
-        self.fname = fname
-
-    def write(self):
-        with open(fname, 'a') as f:
-            for fact in self.base:
-                f.write(json.dumps(fact))
-
-    def fresh_id(self):
-        self.id = self.__gen.next()
-        return self.id
-
-    def addGame(self, node):
-        entry_id = self.fresh_id()
-        if node.tag == "game":
-            self.base.append([entry_id, "bgg-id", mInt(node.attrib.get("gameid"))])
-        elif node.tag == "boardgame":
-            self.base.append([entry_id, "bgg-id", mInt(node.attrib.get("objectid"))])
-        for c in node.getchildren():
-            self.addFact(c, entry_id)
-
-    def addFact(self, node, entry_id):
-        if node.tag in ["ranks", "boardgamepodcastepisode"]:
-            None
-        elif node.tag in ["statistics", "ratings"]:
-            for c in node.getchildren():
-                self.addFact(c, entry_id)
-        elif node.tag == "poll":
-            self.addPoll(node, entry_id)
-        elif node.tag == "name" and node.attrib.get("primary"):
-            self.base.append([entry_id, "primary-name", node.text])
-            self.base.append([entry_id, node.tag, node.text])
-        elif node.tag in ["minplayers", "maxplayers", "playingtime", "yearpublished", "age", "usersrated", "owned", "trading", "wanting", "wishing", "numcomments", "numweights"]:
-            self.base.append([entry_id, bggToFb(node.tag), mInt(node.text)])
-        elif node.tag in ["average", "bayesaverage", "stddev", "median", "averageweight"]:
-            self.base.append([entry_id, bggToFb(node.tag), mFloat(node.text)])
-        elif node.tag == "publisher" and node.getchildren():
-            self.base.append([entry_id, node.tag, node.getchildren()[0].text])
-        else:
-            self.base.append([entry_id, bggToFb(node.tag), node.text])
-
-    def addPoll(self, node, entry_id):
-        poll_id = self.fresh_id()
-        self.base.append([poll_id, "poll", node.attrib.get("title")])
-        self.base.append([poll_id, "relates-to", entry_id])
-        self.base.append([poll_id, "total-votes", mInt(node.attrib.get("totalvotes"))])
-
-        if node.attrib.get("name") == "suggested_numplayers":
-            self.base.append([entry_id, "suggested-players", "Woo!"])
-            for res_set in node.getchildren():
-                for res in res_set.getchildren():
-                    self.base.append([poll_id, (res.attrib.get("value"), res_set.attrib.get("numplayers")), mInt(res.attrib.get("numvotes"))])
-        else:
-            for res in node.getchildren()[0].getchildren():
-                self.base.append([poll_id, res.attrib.get("value"), mInt(res.attrib.get("numvotes"))])
-
 def printNode(node, indent=""):
     for c in node.getchildren():
         cc = c.getchildren()
