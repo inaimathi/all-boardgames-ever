@@ -70,15 +70,27 @@ def mFloat(thing):
         None
 
 ###### THIS IS UGLY, UGLY GARBAGE ####################
+def pushVal(d, key, val):
+    if d.get(key):
+        d[key].append(val)
+    else:
+        d[key] = [val]
+
 def gameToDict(game):
     res={ "polls": []}
     if game.tag == "game":
         res["bgg-id"] = mInt(game.attrib.get("gameid"))
     elif game.tag == "boardgame":
         res["bgg-id"] = mInt(game.attrib.get("objectid"))
+
     for node in game.getchildren():
         if node.tag in ["ranks", "boardgamepodcastepisode"]:
             None
+        elif node.tag == "boardgameexpansion":
+            if node.attrib.get("inbound"):
+                pushVal(res, "expansion-of", node.text)
+            else:
+                pushVal(res, "expansion", node.text)            
         elif node.tag == "statistics":
             for c in node.getchildren()[0].getchildren():
                 key = bggToFb(c.tag)
@@ -98,10 +110,7 @@ def gameToDict(game):
             res["primary-name"] = node.text
         elif node.tag == "publisher":
             pub = node.getchildren()[0].text
-            if res.get("publisher"):
-                res["publisher"] = res["publisher"].append(pub)
-            else:
-                res["publisher"] = [pub]
+            pushVal(res, "publisher", pub)
         elif node.tag == "poll":
             total = mInt(node.attrib.get("totalvotes"))
             if total > 0:
@@ -119,12 +128,7 @@ def gameToDict(game):
                         poll["results"][r.attrib.get("value")] = mInt(r.attrib.get("numvotes"))
                 res["polls"].append(poll)
         else:
-            key = bggToFb(node.tag)
-            val = node.text
-            if res.get(key):
-                res[key].append(val)
-            else:
-                res[key] = [val]
+            pushVal(res, bggToFb(node.tag), node.text)
     if not res["polls"]:
         del res["polls"]
     return res
